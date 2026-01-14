@@ -11,6 +11,9 @@ This project follows a **microservices architecture** with the following service
 - **Product Service** (Port 3002) - Clothing catalog management
 - **Order Service** (Port 3003) - Order processing and management
 - **Payment Service** (Port 3004) - Payment processing with multiple payment methods
+- **Inventory Service** (Port 3005) - Stock level tracking and inventory management
+- **Notification Service** (Port 3006) - Email and SMS notifications for various events
+- **Recommendation Service** (Port 3007) - Personalized product recommendations using ML algorithms
 
 ## 🎨 Design Patterns Implemented
 
@@ -210,6 +213,95 @@ Content-Type: application/json
 }
 ```
 
+### Inventory Service (`/api/inventory`)
+
+#### Create Inventory Item
+```bash
+POST /api/inventory
+Content-Type: application/json
+
+{
+  "productId": 1,
+  "quantity": 100,
+  "lowStockThreshold": 10
+}
+```
+
+#### Reserve Inventory (for order processing)
+```bash
+POST /api/inventory/:productId/reserve
+Content-Type: application/json
+
+{
+  "quantity": 2
+}
+```
+
+#### Get Low Stock Items
+```bash
+GET /api/inventory/low-stock
+```
+
+### Notification Service (`/api/notifications`)
+
+#### Send Notification (Strategy Pattern for email/SMS)
+```bash
+POST /api/notifications
+Content-Type: application/json
+
+{
+  "type": "order_confirmation",
+  "recipient": "user@example.com",
+  "subject": "Order Confirmation",
+  "message": "Your order has been confirmed",
+  "channel": "email"
+}
+```
+
+#### Event-Driven Notification Webhook
+```bash
+POST /api/notifications/events
+Content-Type: application/json
+
+{
+  "event": "order_shipped",
+  "data": {
+    "orderId": 1,
+    "userEmail": "user@example.com",
+    "trackingNumber": "TRACK123"
+  }
+}
+```
+
+### Recommendation Service (`/api/recommendations`)
+
+#### Get Personalized Recommendations
+```bash
+GET /api/recommendations/:userId?algorithm=hybrid&limit=5
+```
+
+#### Update User Profile for Better Recommendations
+```bash
+POST /api/recommendations/:userId/profile
+Content-Type: application/json
+
+{
+  "action": "purchase",
+  "productId": 1,
+  "category": "tshirt",
+  "price": 29.99,
+  "attributes": {
+    "color": "Blue",
+    "size": "M"
+  }
+}
+```
+
+#### Get Supported Recommendation Algorithms
+```bash
+GET /api/recommendations/algorithms
+```
+
 ## 🏛️ Architecture Diagram
 
 ```
@@ -223,15 +315,15 @@ Content-Type: application/json
 │   (Port 3000)   │
 └────────┬────────┘
          │
-    ┌────┴────┬─────────┬──────────┐
-    ▼         ▼         ▼          ▼
-┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐
-│ User   │ │Product │ │ Order  │ │Payment │
-│Service │ │Service │ │Service │ │Service │
-│ :3001  │ │ :3002  │ │ :3003  │ │ :3004  │
-└────────┘ └────────┘ └────────┘ └────────┘
-    │         │         │          │
-    └─────────┴─────────┴──────────┘
+    ┌────┴────┬─────────┬──────────┬──────────┬──────────┬──────────┐
+    ▼         ▼         ▼          ▼          ▼          ▼          ▼
+┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐
+│ User   │ │Product │ │ Order  │ │Payment │ │Inventory │ │Notifica- │ │Recommend-│
+│Service │ │Service │ │Service │ │Service │ │Service   │ │tion Svc  │ │ation Svc │
+│ :3001  │ │ :3002  │ │ :3003  │ │ :3004  │ │ :3005    │ │ :3006    │ │ :3007    │
+└────────┘ └────────┘ └────────┘ └────────┘ └──────────┘ └──────────┘ └──────────┘
+    │         │         │          │          │            │            │
+    └─────────┴─────────┴──────────┴──────────┴────────────┴────────────┘
               │
         [Future: Database Layer]
 ```

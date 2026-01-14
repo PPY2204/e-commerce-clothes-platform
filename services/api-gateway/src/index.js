@@ -57,6 +57,30 @@ app.use('/api/payments', createProxyMiddleware({
   }
 }));
 
+app.use('/api/inventory', createProxyMiddleware({
+  target: process.env.INVENTORY_SERVICE_URL || 'http://localhost:3005',
+  changeOrigin: true,
+  pathRewrite: {
+    '^/api/inventory': '/inventory'
+  }
+}));
+
+app.use('/api/notifications', createProxyMiddleware({
+  target: process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:3006',
+  changeOrigin: true,
+  pathRewrite: {
+    '^/api/notifications': '/notifications'
+  }
+}));
+
+app.use('/api/recommendations', createProxyMiddleware({
+  target: process.env.RECOMMENDATION_SERVICE_URL || 'http://localhost:3007',
+  changeOrigin: true,
+  pathRewrite: {
+    '^/api/recommendations': '/recommendations'
+  }
+}));
+
 app.listen(PORT, () => {
   console.log(`API Gateway running on port ${PORT}`);
 });

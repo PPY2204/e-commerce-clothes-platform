@@ -12,11 +12,17 @@ services:
       - PRODUCT_SERVICE_URL=http://product-service:3002
       - ORDER_SERVICE_URL=http://order-service:3003
       - PAYMENT_SERVICE_URL=http://payment-service:3004
+      - INVENTORY_SERVICE_URL=http://inventory-service:3005
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3006
+      - RECOMMENDATION_SERVICE_URL=http://recommendation-service:3007
     depends_on:
       - user-service
       - product-service
       - order-service
       - payment-service
+      - inventory-service
+      - notification-service
+      - recommendation-service
     networks:
       - ecommerce-network
 
@@ -59,6 +65,36 @@ services:
       - "3004:3004"
     environment:
       - PORT=3004
+    networks:
+      - ecommerce-network
+
+  inventory-service:
+    build: ./services/inventory-service
+    container_name: inventory-service
+    ports:
+      - "3005:3005"
+    environment:
+      - PORT=3005
+    networks:
+      - ecommerce-network
+
+  notification-service:
+    build: ./services/notification-service
+    container_name: notification-service
+    ports:
+      - "3006:3006"
+    environment:
+      - PORT=3006
+    networks:
+      - ecommerce-network
+
+  recommendation-service:
+    build: ./services/recommendation-service
+    container_name: recommendation-service
+    ports:
+      - "3007:3007"
+    environment:
+      - PORT=3007
     networks:
       - ecommerce-network
 
