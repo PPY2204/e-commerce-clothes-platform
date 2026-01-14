@@ -85,6 +85,11 @@ class UserController {
 
   async getAllUsers(req, res) {
     try {
+      // Check if user has admin role
+      if (req.user.role !== 'admin') {
+        return res.status(403).json({ message: 'Access denied. Admin privileges required.' });
+      }
+
       const users = await userRepository.findAll();
       res.json(users.map(user => user.toJSON()));
     } catch (error) {

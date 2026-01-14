@@ -6,7 +6,12 @@ class Config {
     }
 
     this.port = process.env.PORT || 3001;
-    this.jwtSecret = process.env.JWT_SECRET || 'your-secret-key';
+    
+    // Require JWT_SECRET to be set - security critical
+    if (!process.env.JWT_SECRET) {
+      throw new Error('CRITICAL: JWT_SECRET environment variable must be set');
+    }
+    this.jwtSecret = process.env.JWT_SECRET;
     this.jwtExpiration = process.env.JWT_EXPIRATION || '24h';
     
     Config.instance = this;

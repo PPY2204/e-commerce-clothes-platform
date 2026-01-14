@@ -1,4 +1,6 @@
 // Strategy Pattern - Base Payment Strategy
+const TransactionIdGenerator = require('../../../../shared/utils/TransactionIdGenerator');
+
 class PaymentStrategy {
   async process(payment) {
     throw new Error('process() must be implemented');
@@ -36,15 +38,24 @@ class CreditCardStrategy extends PaymentStrategy {
   async process(payment, paymentDetails) {
     console.log(`[CREDIT_CARD] Processing payment ${payment.id} for $${payment.amount}`);
     
-    // Simulate payment processing
-    const transactionId = `CC-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    
-    // In production, integrate with payment gateway (Stripe, etc.)
-    return {
-      success: true,
-      transactionId,
-      message: 'Credit card payment processed successfully'
-    };
+    try {
+      // Generate secure transaction ID
+      const transactionId = TransactionIdGenerator.generate('CC');
+      
+      // In production, integrate with payment gateway (Stripe, etc.)
+      // Add retry logic and error handling
+      return {
+        success: true,
+        transactionId,
+        message: 'Credit card payment processed successfully'
+      };
+    } catch (error) {
+      console.error(`[CREDIT_CARD] Payment processing failed: ${error.message}`);
+      return {
+        success: false,
+        message: `Payment processing failed: ${error.message}`
+      };
+    }
   }
 
   async refund(payment) {
@@ -75,14 +86,24 @@ class PayPalStrategy extends PaymentStrategy {
   async process(payment, paymentDetails) {
     console.log(`[PAYPAL] Processing payment ${payment.id} for $${payment.amount}`);
     
-    const transactionId = `PP-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    
-    // In production, integrate with PayPal API
-    return {
-      success: true,
-      transactionId,
-      message: 'PayPal payment processed successfully'
-    };
+    try {
+      // Generate secure transaction ID
+      const transactionId = TransactionIdGenerator.generate('PP');
+      
+      // In production, integrate with PayPal API
+      // Add retry logic and error handling
+      return {
+        success: true,
+        transactionId,
+        message: 'PayPal payment processed successfully'
+      };
+    } catch (error) {
+      console.error(`[PAYPAL] Payment processing failed: ${error.message}`);
+      return {
+        success: false,
+        message: `Payment processing failed: ${error.message}`
+      };
+    }
   }
 
   async refund(payment) {
@@ -114,14 +135,25 @@ class CryptoStrategy extends PaymentStrategy {
     console.log(`[CRYPTO] Processing payment ${payment.id} for $${payment.amount}`);
     console.log(`[CRYPTO] Cryptocurrency: ${paymentDetails.cryptocurrency}`);
     
-    const transactionId = `CRYPTO-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    
-    // In production, integrate with crypto payment gateway
-    return {
-      success: true,
-      transactionId,
-      message: 'Cryptocurrency payment processed successfully'
-    };
+    try {
+      // Generate secure transaction ID
+      const transactionId = TransactionIdGenerator.generate('CRYPTO');
+      
+      // In production, integrate with crypto payment gateway
+      // Add retry logic and error handling
+      return {
+        success: true,
+        transactionId,
+        message: 'Cryptocurrency payment processed successfully'
+      };
+    } catch (error) {
+      console.error(`[CRYPTO] Payment processing failed: ${error.message}`);
+      return {
+        success: false,
+        message: `Payment processing failed: ${error.message}`
+      };
+    }
+  }
   }
 
   async refund(payment) {
@@ -156,14 +188,25 @@ class BankTransferStrategy extends PaymentStrategy {
   async process(payment, paymentDetails) {
     console.log(`[BANK_TRANSFER] Processing payment ${payment.id} for $${payment.amount}`);
     
-    const transactionId = `BT-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    
-    // In production, integrate with banking API
-    return {
-      success: true,
-      transactionId,
-      message: 'Bank transfer payment processed successfully'
-    };
+    try {
+      // Generate secure transaction ID
+      const transactionId = TransactionIdGenerator.generate('BT');
+      
+      // In production, integrate with banking API
+      // Add retry logic and error handling
+      return {
+        success: true,
+        transactionId,
+        message: 'Bank transfer payment processed successfully'
+      };
+    } catch (error) {
+      console.error(`[BANK_TRANSFER] Payment processing failed: ${error.message}`);
+      return {
+        success: false,
+        message: `Payment processing failed: ${error.message}`
+      };
+    }
+  }
   }
 
   async refund(payment) {
