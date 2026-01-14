@@ -20,6 +20,9 @@ Each service has one clear business responsibility:
 - **Product Service**: Product catalog management
 - **Order Service**: Order processing
 - **Payment Service**: Payment processing
+- **Inventory Service**: Stock level tracking and inventory management
+- **Notification Service**: Email and SMS notifications
+- **Recommendation Service**: Personalized product recommendations
 
 ### 3. Decentralized Data Management
 Each service manages its own data:
@@ -60,6 +63,9 @@ Single entry point for all client requests:
 - Routes `/api/products/*` → Product Service
 - Routes `/api/orders/*` → Order Service
 - Routes `/api/payments/*` → Payment Service
+- Routes `/api/inventory/*` → Inventory Service
+- Routes `/api/notifications/*` → Notification Service
+- Routes `/api/recommendations/*` → Recommendation Service
 - Rate limiting: 100 requests per 15 minutes per IP
 
 ---
@@ -252,6 +258,198 @@ Each status change triggers notifications to:
 - `completed` - Payment successful
 - `failed` - Payment failed
 - `refunded` - Payment refunded
+
+---
+
+### Inventory Service (Port 3005)
+
+**Responsibility**: Stock level tracking and inventory management
+
+```
+┌─────────────────────────────────┐
+│      Inventory Service          │
+│                                 │
+│  Controllers                    │
+│      ↓                          │
+│  Repositories (Repository)      │
+│      ↓                          │
+│  Models (InventoryItem)         │
+└─────────────────────────────────┘
+```
+
+**Design Patterns**:
+- **Repository Pattern**: Inventory data access
+
+**Endpoints**:
+- `POST /inventory` - Create inventory item
+- `GET /inventory` - Get all inventory
+- `GET /inventory/low-stock` - Get low stock items
+- `GET /inventory/out-of-stock` - Get out of stock items
+- `GET /inventory/:productId` - Get inventory by product
+- `PUT /inventory/:productId` - Update inventory
+- `DELETE /inventory/:productId` - Delete inventory
+- `POST /inventory/:productId/reserve` - Reserve inventory
+- `POST /inventory/:productId/release` - Release reservation
+- `POST /inventory/:productId/deduct` - Deduct from stock
+- `POST /inventory/:productId/restock` - Add stock
+
+**Key Features**:
+- Track available and reserved quantities
+- Low stock alerts
+- Out of stock detection
+- Reserve/release/deduct operations for order processing
+- Automatic calculations for available quantity
+
+**Inventory States**:
+- Available: Total - Reserved
+- Reserved: Temporarily held for pending orders
+- Low Stock: Available ≤ threshold
+- Out of Stock: Available = 0
+
+---
+
+### Notification Service (Port 3006)
+
+**Responsibility**: Email and SMS notifications
+
+```
+┌─────────────────────────────────┐
+│    Notification Service         │
+│                                 │
+│  Controllers                    │
+│      ↓                          │
+│  Context (Strategy Pattern)     │
+│      ↓                          │
+│  Strategies:                    │
+│    - Email                      │
+│    - SMS                        │
+│      ↓                          │
+│  Repositories (Repository)      │
+│      ↓                          │
+│  Models (Notification)          │
+└─────────────────────────────────┘
+```
+
+**Design Patterns**:
+- **Strategy Pattern**: Notification channel selection (Email, SMS)
+- **Repository Pattern**: Notification data access
+
+**Endpoints**:
+- `POST /notifications` - Send notification
+- `GET /notifications` - Get all notifications
+- `GET /notifications/channels` - Get supported channels
+- `GET /notifications/:id` - Get notification by ID
+- `GET /notifications/recipient/:recipient` - Get by recipient
+- `POST /notifications/events` - Event webhook for system events
+
+**Notification Channels**:
+1. **Email**
+   - Integration: SendGrid/AWS SES (simulated)
+   - For: Order confirmations, payment confirmations, shipment tracking
+   
+2. **SMS**
+   - Integration: Twilio/AWS SNS (simulated)
+   - For: Urgent notifications, OTPs, delivery updates
+
+**Notification Types**:
+- `order_confirmation` - Order placed successfully
+- `payment_confirmation` - Payment processed
+- `shipment_tracking` - Order shipped
+- `low_stock_alert` - Admin notification for low inventory
+
+**Event-Driven Architecture**:
+The service listens for events from other services:
+```javascript
+POST /notifications/events
+{
+  "event": "order_shipped",
+  "data": {
+    "orderId": 1,
+    "userEmail": "user@example.com",
+    "trackingNumber": "TRACK123"
+  }
+}
+```
+
+---
+
+### Recommendation Service (Port 3007)
+
+**Responsibility**: Personalized product recommendations
+
+```
+┌─────────────────────────────────┐
+│   Recommendation Service        │
+│                                 │
+│  Controllers                    │
+│      ↓                          │
+│  Context (Strategy Pattern)     │
+│      ↓                          │
+│  Engines:                       │
+│    - Collaborative Filtering    │
+│    - Content-Based              │
+│    - Trending                   │
+│    - Hybrid                     │
+│      ↓                          │
+│  Repositories (Repository)      │
+│      ↓                          │
+│  Models (UserProfile)           │
+└─────────────────────────────────┘
+```
+
+**Design Patterns**:
+- **Strategy Pattern**: Multiple recommendation algorithms
+- **Repository Pattern**: User profile data access
+
+**Endpoints**:
+- `GET /recommendations/:userId` - Get recommendations
+- `GET /recommendations/algorithms` - Get supported algorithms
+- `GET /recommendations/:userId/profile` - Get user profile
+- `POST /recommendations/:userId/profile` - Update user profile
+- `POST /recommendations/events` - Event webhook for user actions
+
+**Recommendation Algorithms**:
+
+1. **Collaborative Filtering**
+   - Based on similar users' behavior
+   - "Users like you also liked..."
+   - Analyzes purchase patterns across users
+
+2. **Content-Based Filtering**
+   - Based on user's preferences and history
+   - Analyzes product attributes (category, color, price)
+   - Matches to user profile
+
+3. **Trending**
+   - Currently popular products
+   - Time-based popularity
+   - Cross-user trending analysis
+
+4. **Hybrid** (Default)
+   - Combines all algorithms
+   - Weighted scoring: 40% Collaborative, 40% Content-Based, 20% Trending
+   - Best overall recommendations
+
+**User Profile Tracking**:
+- Purchase history
+- View history
+- Category preferences
+- Color preferences
+- Size preferences
+- Price range preferences
+
+**Event Integration**:
+The service tracks user behavior through events:
+```javascript
+POST /recommendations/events
+{
+  "event": "order_completed",
+  "data": {
+    "userId": 1,
+    "items": [...]
+  }
+}
+```
 
 ---
 
