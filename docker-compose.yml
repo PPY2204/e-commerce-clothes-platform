@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  api-gateway:
+    build: ./services/api-gateway
+    container_name: api-gateway
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - USER_SERVICE_URL=http://user-service:3001
+      - PRODUCT_SERVICE_URL=http://product-service:3002
+      - ORDER_SERVICE_URL=http://order-service:3003
+      - PAYMENT_SERVICE_URL=http://payment-service:3004
+    depends_on:
+      - user-service
+      - product-service
+      - order-service
+      - payment-service
+    networks:
+      - ecommerce-network
+
+  user-service:
+    build: ./services/user-service
+    container_name: user-service
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - JWT_SECRET=your-secret-key-change-in-production
+      - JWT_EXPIRATION=24h
+    networks:
+      - ecommerce-network
+
+  product-service:
+    build: ./services/product-service
+    container_name: product-service
+    ports:
+      - "3002:3002"
+    environment:
+      - PORT=3002
+    networks:
+      - ecommerce-network
+
+  order-service:
+    build: ./services/order-service
+    container_name: order-service
+    ports:
+      - "3003:3003"
+    environment:
+      - PORT=3003
+    networks:
+      - ecommerce-network
+
+  payment-service:
+    build: ./services/payment-service
+    container_name: payment-service
+    ports:
+      - "3004:3004"
+    environment:
+      - PORT=3004
+    networks:
+      - ecommerce-network
+
+networks:
+  ecommerce-network:
+    driver: bridge
