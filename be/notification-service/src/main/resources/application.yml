@@ -1,0 +1,56 @@
+server:
+  port: 8085
+
+spring:
+  application:
+    name: notification-service
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: your-email@gmail.com
+    password: your-password
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+# Resilience4J Configuration for Notification Service
+resilience4j:
+  ratelimiter:
+    instances:
+      email-service:
+        limitForPeriod: 500
+        limitRefreshPeriod: 1m
+        timeoutDuration: 3s
+      sms-service:
+        limitForPeriod: 100
+        limitRefreshPeriod: 1m
+        timeoutDuration: 3s
+
+  retry:
+    instances:
+      email-service:
+        maxAttempts: 3
+        waitDuration: 1s
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 2
+      sms-service:
+        maxAttempts: 3
+        waitDuration: 1s
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 2
+
+# Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,ratelimiters
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
+
