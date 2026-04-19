@@ -1,0 +1,20 @@
+server:
+  port: 8085
+
+spring:
+  application:
+    name: recommendation-service
+
+langchain4j:
+  google-ai:
+    gemini:
+      chat-model:
+        api-key: ${GEMINI_API_KEY:demo}
+        model-name: gemini-1.5-flash
+        log-requests: true
+        log-responses: true
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/

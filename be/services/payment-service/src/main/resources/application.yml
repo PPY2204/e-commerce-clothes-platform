@@ -1,0 +1,76 @@
+server:
+  port: 8084
+
+spring:
+  application:
+    name: payment-service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/payment_db
+    username: postgres
+    password: postgres
+  jpa:
+    hibernate:
+      ddl-auto: update
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+# Resilience4J Configuration for Payment Service
+resilience4j:
+  circuitbreaker:
+    instances:
+      payment-gateway:
+        registerHealthIndicator: true
+        slidingWindowSize: 100
+        minimumNumberOfCalls: 10
+        permittedNumberOfCallsInHalfOpenState: 5
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 60s
+        failureRateThreshold: 50
+        slowCallRateThreshold: 50
+        slowCallDurationThreshold: 10s
+        recordExceptions:
+          - org.springframework.web.client.HttpServerErrorException
+          - java.io.IOException
+          - java.net.SocketTimeoutException
+          - java.util.concurrent.TimeoutException
+        ignoreExceptions:
+          - org.springframework.web.client.HttpClientErrorException
+          - com.ecommerce.common.exception.BusinessException
+
+  retry:
+    instances:
+      payment-gateway:
+        maxAttempts: 2
+        waitDuration: 2s
+        enableExponentialBackoff: false
+        retryExceptions:
+          - java.net.SocketTimeoutException
+          - java.io.IOException
+        ignoreExceptions:
+          - org.springframework.web.client.HttpServerErrorException
+          - org.springframework.web.client.HttpClientErrorException
+
+  ratelimiter:
+    instances:
+      payment-gateway:
+        limitForPeriod: 100
+        limitRefreshPeriod: 1m
+        timeoutDuration: 5s
+
+# Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,circuitbreakers,circuitbreakerevents,ratelimiters
+  health:
+    circuitbreakers:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}

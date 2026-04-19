@@ -1,0 +1,20 @@
+# Build stage
+FROM maven:3.9-eclipse-temurin-17-alpine AS build
+WORKDIR /app
+COPY pom.xml .
+COPY common-lib common-lib
+# Pre-build common-lib as it's a dependency
+RUN mvn install -pl common-lib -DskipTests
+# Copy other modules as needed or build the target module
+# For a generic Dockerfile, we usually copy everything but build only the specified module
+COPY . .
+ARG SERVICE_NAME
+RUN mvn clean package -pl services/${SERVICE_NAME} -am -DskipTests
+
+# Run stage
+FROM eclipse-temurin:17-jre-alpine
+WORKDIR /app
+ARG SERVICE_NAME
+COPY --from=build /app/services/${SERVICE_NAME}/target/*.jar app.jar
+EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "app.jar"]
