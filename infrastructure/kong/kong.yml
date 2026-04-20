@@ -1,0 +1,97 @@
+_format_version: "3.0"
+_transform: true
+
+services:
+  - name: user-service
+    url: http://user-service:8080
+    routes:
+      - name: user-route
+        paths:
+          - /api/users
+        strip_path: true
+  
+  - name: product-catalog-service
+    url: http://product-catalog-service:8080
+    routes:
+      - name: product-route
+        paths:
+          - /api/products
+        strip_path: true
+    plugins:
+      - name: rate-limiting
+        config:
+          second: 5
+          hour: 10000
+          policy: local
+
+  - name: order-service
+    url: http://order-service:8080
+    routes:
+      - name: order-route
+        paths:
+          - /api/orders
+        strip_path: true
+
+  - name: recommendation-service
+    url: http://recommendation-service:8080
+    routes:
+      - name: recommendation-route
+        paths:
+          - /api/recommendations
+        strip_path: true
+
+  - name: shopping-cart-service
+    url: http://shopping-cart-service:8080
+    routes:
+      - name: cart-route
+        paths:
+          - /api/cart
+        strip_path: true
+
+  - name: payment-service
+    url: http://payment-service:8080
+    routes:
+      - name: payment-route
+        paths:
+          - /api/payment
+        strip_path: true
+
+  - name: notification-service
+    url: http://notification-service:8080
+    routes:
+      - name: notification-route
+        paths:
+          - /api/notifications
+        strip_path: true
+
+  - name: review-service
+    url: http://review-service:8080
+    routes:
+      - name: review-route
+        paths:
+          - /api/reviews
+        strip_path: true
+
+plugins:
+  - name: cors
+    config:
+      origins:
+        - "*"
+      methods:
+        - GET
+        - POST
+        - PUT
+        - DELETE
+        - OPTIONS
+      headers:
+        - Accept
+        - Accept-Version
+        - Content-Length
+        - Content-MD5
+        - Content-Type
+        - Date
+        - Authorization
+      exposed_headers:
+        - X-Auth-Token
+      credentials: true
+      max_age: 3600

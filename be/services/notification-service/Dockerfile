@@ -1,16 +1,29 @@
-# Global Build Stage
-FROM maven:3.9-eclipse-temurin-17-alpine AS build
+# STEP 1: Build Base with Dependencies Cached
+FROM maven:3.9-eclipse-temurin-21-alpine AS build
 WORKDIR /app
-# Context is the project root
-COPY be/pom.xml be/
-COPY be/common-lib be/common-lib
-RUN mvn install -pl common-lib -DskipTests -f be/pom.xml
 
-COPY be/services/notification-service be/services/notification-service
-RUN mvn clean package -pl services/notification-service -am -DskipTests -f be/pom.xml
+# Cache Parent POM dependencies
+COPY be/pom.xml be/pom.xml
+RUN mvn install -N -f be/pom.xml
 
-# Run Stage
-FROM eclipse-temurin:17-jre-alpine
+# Cache Common-Lib dependencies
+COPY be/common-lib/pom.xml be/common-lib/pom.xml
+RUN mvn dependency:go-offline -f be/common-lib/pom.xml
+
+# Build Common-Lib
+COPY be/common-lib/src be/common-lib/src
+RUN mvn install -DskipTests -f be/common-lib/pom.xml
+
+# Build the Service
+COPY be/services/notification-service/pom.xml be/services/notification-service/pom.xml
+RUN mvn dependency:go-offline -f be/services/notification-service/pom.xml
+
+COPY be/services/notification-service/src be/services/notification-service/src
+WORKDIR /app/be/services/notification-service
+RUN mvn package -DskipTests
+
+# STEP 2: Run Stage
+FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 COPY --from=build /app/be/services/notification-service/target/*.jar app.jar
 EXPOSE 8080

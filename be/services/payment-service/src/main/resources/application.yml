@@ -1,21 +1,22 @@
 server:
-  port: 8084
+  port: 8080
 
 spring:
   application:
     name: payment-service
   datasource:
-    url: jdbc:postgresql://localhost:5432/payment_db
-    username: postgres
-    password: postgres
+    url: ${PAYMENT_DB_URL:jdbc:postgresql://postgres:5432/payment_db}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
   jpa:
     hibernate:
       ddl-auto: update
 
 eureka:
   client:
+    enabled: false
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
 # Resilience4J Configuration for Payment Service
 resilience4j:
   circuitbreaker:
@@ -74,3 +75,9 @@ management:
         enabled: true
     tags:
       application: ${spring.application.name}
+
+# Payment Gateway Configuration
+payment:
+  gateway:
+    url: https://api.payment-gateway.com
+    api-key: ${PAYMENT_API_KEY:test-payment-key-67890}

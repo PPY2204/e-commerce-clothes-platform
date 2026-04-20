@@ -1,13 +1,18 @@
 server:
-  port: 8081
+  port: 8080
 
 spring:
   application:
     name: user-service
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
   datasource:
-    url: jdbc:postgresql://localhost:5432/user_db
-    username: postgres
-    password: postgres
+    url: ${USER_DB_URL:jdbc:postgresql://postgres:5432/user_db}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -20,8 +25,9 @@ spring:
 
 eureka:
   client:
+    enabled: false
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
   instance:
     prefer-ip-address: true
 
@@ -32,7 +38,7 @@ management:
         include: health,info,metrics
 
 jwt:
-  secret: your-secret-key-should-be-at-least-256-bits-long-for-hs256
+  secret: ${JWT_SECRET:your-secret-key-should-be-at-least-256-bits-long-for-hs256}
   expiration: 86400000 # 24 hours
 
 springdoc:

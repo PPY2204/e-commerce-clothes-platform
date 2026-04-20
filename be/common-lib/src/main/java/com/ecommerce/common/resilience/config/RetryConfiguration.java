@@ -25,9 +25,6 @@ public class RetryConfiguration {
                 // Maximum number of retry attempts (including initial call)
                 .maxAttempts(3)
 
-                // Initial wait duration between retry attempts
-                .waitDuration(Duration.ofSeconds(1))
-
                 // Enable exponential backoff
                 .intervalFunction(io.github.resilience4j.core.IntervalFunction
                         .ofExponentialBackoff(Duration.ofSeconds(1), 2.0))

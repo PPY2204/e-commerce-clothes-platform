@@ -1,21 +1,22 @@
 server:
-  port: 8083
+  port: 8080
 
 spring:
   application:
     name: order-service
   datasource:
-    url: jdbc:postgresql://localhost:5432/order_db
-    username: postgres
-    password: postgres
+    url: ${ORDER_DB_URL:jdbc:postgresql://postgres:5432/order_db}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
   jpa:
     hibernate:
       ddl-auto: update
 
 eureka:
   client:
+    enabled: false
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
 # Resilience4J Configuration
 resilience4j:
   circuitbreaker:

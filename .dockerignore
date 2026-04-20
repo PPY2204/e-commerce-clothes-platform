@@ -1,0 +1,33 @@
+# Root .dockerignore
+# Build artifacts
+**/target/
+**/node_modules/
+**/.next/
+**/dist/
+**/build/
+
+# IDE & OS
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Logs & Temp
+*.log
+tmp/
+temp/
+
+# Scripts
+infrastructure/localstack/data/
+infrastructure/prometheus/data/
+cal
+infrastructure/nginx/certs
+docker-compose.yml
+Jenkinsfile
+Makefile
+README.md
+architecture_overview.md
+*.tmp
+*.bak

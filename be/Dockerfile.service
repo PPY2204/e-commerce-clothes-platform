@@ -1,5 +1,5 @@
 # Build stage
-FROM maven:3.9-eclipse-temurin-17-alpine AS build
+FROM maven:3.9-eclipse-temurin-21-alpine AS build
 WORKDIR /app
 COPY pom.xml .
 COPY common-lib common-lib
@@ -12,7 +12,7 @@ ARG SERVICE_NAME
 RUN mvn clean package -pl services/${SERVICE_NAME} -am -DskipTests
 
 # Run stage
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 ARG SERVICE_NAME
 COPY --from=build /app/services/${SERVICE_NAME}/target/*.jar app.jar

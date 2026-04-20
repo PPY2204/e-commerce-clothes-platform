@@ -1,0 +1,14 @@
+node_modules
+.next
+out
+build
+dist
+.env*.local
+.vercel
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.git
+.gitignore
+.dockerignore
+README.md

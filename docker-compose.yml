@@ -1,0 +1,360 @@
+networks:
+  ecommerce-network:
+    driver: bridge
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql
+    networks:
+      - ecommerce-network
+
+  # IAM: Keycloak
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0.5
+    container_name: keycloak
+    command: start-dev --http-port 8080
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak_db
+      KC_DB_USERNAME: postgres
+      KC_DB_PASSWORD: postgres
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      - postgres
+    networks:
+      - ecommerce-network
+
+  # MongoDB Database
+  mongodb:
+    image: mongo:6
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - ecommerce-network
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: root
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - ecommerce-network
+
+  # Kafka
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: kafka
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+    networks:
+      - ecommerce-network
+
+  # LocalStack
+  localstack:
+    image: localstack/localstack:3.4.0
+    container_name: localstack
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=dynamodb
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    volumes:
+      - "./infrastructure/localstack:/etc/localstack/init/ready.d"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    networks:
+      - ecommerce-network
+
+  # --- MICROSERVICES ---
+
+  user-service:
+    image: yamatee/user-service:latest
+    container_name: user-service
+    build:
+      context: .
+      dockerfile: ./be/services/user-service/Dockerfile
+    env_file: .env
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+    depends_on:
+      - postgres
+      - kafka
+    networks:
+      - ecommerce-network
+
+  product-catalog-service:
+    image: yamatee/product-service:latest
+    container_name: product-service
+    build:
+      context: .
+      dockerfile: ./be/services/product-catalog-service/Dockerfile
+    env_file: .env
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+    depends_on:
+      - localstack
+      - mongodb
+    networks:
+      - ecommerce-network
+
+  order-service:
+    image: yamatee/order-service:latest
+    container_name: order-service
+    build:
+      context: .
+      dockerfile: ./be/services/order-service/Dockerfile
+    env_file: .env
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - ecommerce-network
+
+#  recommendation-service:
+#    image: yamatee/recommendation-service:latest
+#    container_name: recommendation-service
+#    build:
+#      context: .
+#      dockerfile: ./be/services/recommendation-service/Dockerfile
+#    env_file: .env
+#    environment:
+#      - SPRING_PROFILES_ACTIVE=dev
+#    networks:
+#      - ecommerce-network
+
+  shopping-cart-service:
+    image: yamatee/shopping-cart-service:latest
+    container_name: shopping-cart-service
+    build:
+      context: .
+      dockerfile: ./be/services/shopping-cart-service/Dockerfile
+    env_file: .env
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - ecommerce-network
+
+#  payment-service:
+#    image: yamatee/payment-service:latest
+#    container_name: payment-service
+#    build:
+#      context: .
+#      dockerfile: ./be/services/payment-service/Dockerfile
+#    env_file: .env
+#    environment:
+#      - SPRING_PROFILES_ACTIVE=dev
+#    depends_on:
+#      - postgres
+#    networks:
+#      - ecommerce-network
+
+  notification-service:
+    image: yamatee/notification-service:latest
+    container_name: notification-service
+    build:
+      context: .
+      dockerfile: ./be/services/notification-service/Dockerfile
+    env_file: .env
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_MAIL_HOST=maildev
+      - SPRING_MAIL_PORT=1025
+    depends_on:
+      - kafka
+      - maildev
+    networks:
+      - ecommerce-network
+
+#  review-service:
+#    image: yamatee/review-service:latest
+#    container_name: review-service
+#    build:
+#      context: .
+#      dockerfile: ./be/services/review-service/Dockerfile
+#    env_file: .env
+#    environment:
+#      - SPRING_PROFILES_ACTIVE=dev
+#    depends_on:
+#      - mongodb
+#    networks:
+#      - ecommerce-network
+
+  # --- GATEWAY & FRONTEND ---
+
+  kong:
+    image: kong:3.4
+    container_name: gateway
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /usr/local/kong/declarative/kong.yml
+    volumes:
+      - ./infrastructure/kong/kong.yml:/usr/local/kong/declarative/kong.yml
+    ports:
+      - "8001:8001"
+    networks:
+      - ecommerce-network
+    depends_on:
+      - user-service
+      - product-catalog-service
+      - order-service
+
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infrastructure/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./infrastructure/nginx/certs:/etc/nginx/certs:ro
+    depends_on:
+      fe:
+        condition: service_healthy
+      kong:
+        condition: service_started
+    networks:
+      - ecommerce-network
+
+  fe:
+    image: yamatee/frontend:latest
+    container_name: frontend
+    build:
+      context: ./fe
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=${GATEWAY_URL}
+    environment:
+      - NEXT_PUBLIC_API_URL=${GATEWAY_URL}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - ecommerce-network
+
+  # --- OBSERVABILITY ---
+
+  swagger-ui:
+    image: swaggerapi/swagger-ui
+    container_name: swagger-ui
+    ports:
+      - "8088:8080"
+    environment:
+      - SWAGGER_URLS=[{"url":"https://localhost/api/users/api-docs","name":"User Service"},{"url":"https://localhost/api/products/api-docs","name":"Product Catalog"},{"url":"https://localhost/api/orders/api-docs","name":"Order Service"},{"url":"https://localhost/api/cart/api-docs","name":"Shopping Cart"},{"url":"https://localhost/api/payment/api-docs","name":"Payment Service"},{"url":"https://localhost/api/notifications/api-docs","name":"Notification Service"},{"url":"https://localhost/api/reviews/api-docs","name":"Review Service"},{"url":"https://localhost/api/recommendations/api-docs","name":"Recommendation Service"}]
+    networks:
+      - ecommerce-network
+
+#  prometheus:
+#    image: prom/prometheus:latest
+#    container_name: prometheus
+#    volumes:
+#      - ./infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+#    ports:
+#      - "9090:9090"
+#    networks:
+#      - ecommerce-network
+
+#  grafana:
+#    image: grafana/grafana:latest
+#    container_name: grafana
+#    volumes:
+#      - grafana_data:/var/lib/grafana
+#    ports:
+#      - "3001:3000"
+#    environment:
+#      - GF_SECURITY_ADMIN_PASSWORD=admin
+#    networks:
+#      - ecommerce-network
+
+  maildev:
+    image: maildev/maildev
+    container_name: maildev
+    ports:
+      - "1080:1080"
+      - "1025:1025"
+    networks:
+      - ecommerce-network
+
+  # --- CI/CD ---
+#  jenkins:
+#    image: jenkins/jenkins:lts
+#    container_name: ecommerce-jenkins
+#    privileged: true
+#    user: root
+#    ports:
+#      - "8081:8080"
+#      - "50000:50000"
+#    environment:
+#      - JAVA_OPTS=-Xmx2g
+#    volumes:
+#      - jenkins-data:/var/jenkins_home
+#      - /var/run/docker.sock:/var/run/docker.sock
+#    networks:
+#      - ecommerce-network
+
+#  sonarqube:
+#    image: sonarqube:lts-community
+#    container_name: ecommerce-sonarqube
+#    ports:
+#      - "9000:9000"
+#    environment:
+#      - SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true
+#    volumes:
+#      - sonarqube-data:/opt/sonarqube/data
+#    networks:
+#      - ecommerce-network
+
+volumes:
+  postgres-data:
+  mongo-data:
+  redis-data:
+  grafana_data:
+  jenkins-data:
+  sonarqube-data:

@@ -15,7 +15,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@RedisHash("Cart")
+@RedisHash(value = "Cart", timeToLive = 2592000)
 public class Cart implements Serializable {
     @Id
     private String userId;

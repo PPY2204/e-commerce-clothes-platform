@@ -28,4 +28,25 @@ public class AuthController {
         AuthResponse response = userService.login(request);
         return ResponseEntity.ok(ApiResponse.success("Login successful", response));
     }
+
+    @PostMapping("/verify-otp")
+    public ResponseEntity<ApiResponse<Void>> verifyOtp(@RequestParam String email, @RequestParam String code) {
+        userService.verifyOtp(email, code);
+        return ResponseEntity.ok(ApiResponse.success("Account activated successfully", null));
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<ApiResponse<Void>> forgotPassword(@RequestParam String email) {
+        userService.forgotPassword(email);
+        return ResponseEntity.ok(ApiResponse.success("Password reset code sent to your email", null));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<ApiResponse<Void>> resetPassword(
+            @RequestParam String email, 
+            @RequestParam String code, 
+            @RequestParam String newPassword) {
+        userService.resetPassword(email, code, newPassword);
+        return ResponseEntity.ok(ApiResponse.success("Password updated successfully", null));
+    }
 }
