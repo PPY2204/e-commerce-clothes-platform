@@ -13,6 +13,17 @@ import org.springframework.stereotype.Service;
 public class NotificationConsumer {
 
     private final EmailService emailService;
+    
+    @KafkaListener(topics = "user-registration", groupId = "notification-group")
+    public void consumeUserRegisteredEvent(com.ecommerce.common.event.UserRegisteredEvent event) {
+        log.info("Received user registration event for email: {}", event.getEmail());
+        try {
+            emailService.sendOtpEmail(event.getEmail(), event.getOtp());
+            log.info("Registration OTP sent successfully to {}", event.getEmail());
+        } catch (Exception e) {
+            log.error("Error processing registration event: {}", e.getMessage());
+        }
+    }
 
     @KafkaListener(topics = "notification-events", groupId = "notification-group")
     public void consumeNotificationEvent(com.ecommerce.common.event.NotificationEvent event) {

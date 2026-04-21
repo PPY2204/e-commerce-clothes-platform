@@ -9,6 +9,13 @@ spring:
       uri: ${PRODUCT_DB_URI:mongodb://mongodb:27017/product_db}
       auto-index-creation: true
 
+aws:
+  region: us-east-1
+  dynamodb:
+    endpoint: ${DYNAMODB_ENDPOINT:http://localstack:4566}
+  access-key: test
+  secret-key: test
+
 eureka:
   client:
     enabled: false
@@ -21,7 +28,13 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: health,info,metrics,prometheus
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
 
 springdoc:
   api-docs:

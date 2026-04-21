@@ -26,10 +26,15 @@ services:
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak_db
       KC_DB_USERNAME: postgres
       KC_DB_PASSWORD: postgres
+      KC_HOSTNAME: localhost
+      KC_HOSTNAME_STRICT: "false"
+      KC_HTTP_ENABLED: "true"
     ports:
       - "8080:8080"
     healthcheck:
@@ -116,6 +121,8 @@ services:
     env_file: .env
     environment:
       - SPRING_PROFILES_ACTIVE=dev
+      - MANAGEMENT_TRACING_SAMPLING_PROBABILITY=1.0
+      - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
     depends_on:
       - postgres
       - kafka
@@ -131,6 +138,8 @@ services:
     env_file: .env
     environment:
       - SPRING_PROFILES_ACTIVE=dev
+      - MANAGEMENT_TRACING_SAMPLING_PROBABILITY=1.0
+      - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
     depends_on:
       - localstack
       - mongodb
@@ -146,6 +155,8 @@ services:
     env_file: .env
     environment:
       - SPRING_PROFILES_ACTIVE=dev
+      - MANAGEMENT_TRACING_SAMPLING_PROBABILITY=1.0
+      - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
     depends_on:
       - postgres
       - redis
@@ -161,6 +172,8 @@ services:
 #    env_file: .env
 #    environment:
 #      - SPRING_PROFILES_ACTIVE=dev
+#      - MANAGEMENT_TRACING_SAMPLING_PROBABILITY=1.0
+#      - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
 #    networks:
 #      - ecommerce-network
 
@@ -173,6 +186,8 @@ services:
     env_file: .env
     environment:
       - SPRING_PROFILES_ACTIVE=dev
+      - MANAGEMENT_TRACING_SAMPLING_PROBABILITY=1.0
+      - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
     depends_on:
       - postgres
       - redis
@@ -204,6 +219,8 @@ services:
       - SPRING_PROFILES_ACTIVE=dev
       - SPRING_MAIL_HOST=maildev
       - SPRING_MAIL_PORT=1025
+      - MANAGEMENT_TRACING_SAMPLING_PROBABILITY=1.0
+      - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
     depends_on:
       - kafka
       - maildev
@@ -232,6 +249,7 @@ services:
     environment:
       KONG_DATABASE: "off"
       KONG_DECLARATIVE_CONFIG: /usr/local/kong/declarative/kong.yml
+      KONG_ADMIN_LISTEN: 0.0.0.0:8001, 0.0.0.0:8444 ssl
     volumes:
       - ./infrastructure/kong/kong.yml:/usr/local/kong/declarative/kong.yml
     ports:
@@ -280,7 +298,6 @@ services:
       - ecommerce-network
 
   # --- OBSERVABILITY ---
-
   swagger-ui:
     image: swaggerapi/swagger-ui
     container_name: swagger-ui
@@ -291,27 +308,40 @@ services:
     networks:
       - ecommerce-network
 
-#  prometheus:
-#    image: prom/prometheus:latest
-#    container_name: prometheus
-#    volumes:
-#      - ./infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-#    ports:
-#      - "9090:9090"
-#    networks:
-#      - ecommerce-network
+  zipkin:
+    image: openzipkin/zipkin:2.24
+    container_name: zipkin
+    ports:
+      - "9411:9411"
+    networks:
+      - ecommerce-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9411/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-#  grafana:
-#    image: grafana/grafana:latest
-#    container_name: grafana
-#    volumes:
-#      - grafana_data:/var/lib/grafana
-#    ports:
-#      - "3001:3000"
-#    environment:
-#      - GF_SECURITY_ADMIN_PASSWORD=admin
-#    networks:
-#      - ecommerce-network
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - ecommerce-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    volumes:
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    networks:
+      - ecommerce-network
 
   maildev:
     image: maildev/maildev
