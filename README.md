@@ -17,112 +17,153 @@ The system implements a **DMZ-Edge-Core** security model, ensuring all traffic i
 ### 🗺️ System Topology
 ```mermaid
 graph TB
-    subgraph "External Layer (Public Internet)"
+    subgraph "External Layer (Internet)"
         User["Customer Browser"]
         RT53["Route 53 (DNS)"]
     end
 
     subgraph "Edge Security (DMZ)"
-        Nginx["Nginx (SSL Termination)"]
-        WAF["AWS WAF (Firewall)"]
+        Nginx["Nginx (SSL Terminal)"]
+        WAF["AWS WAF"]
     end
 
-    subgraph "API Management (Identity Hub)"
-        Kong["Kong Gateway (DB-less)"]
-        Keycloak["Keycloak IAM (OIDC)"]
-        OIDC["JWT/OIDC Validation"]
+    subgraph "API Management (Kong)"
+        Kong["Kong Gateway"]
+        OIDC["Keycloak OIDC"]
+        RL["Rate Limiter"]
     end
 
     subgraph "AI-Powered Core (Service Mesh)"
         US["User Service"]
-        PS["Product Catalog (DynamoDB)"]
-        OS["Order Service"]
-        RS["AI Size Assistant (Gemini)"]
-        CS["Cart Service (Redis CRUD)"]
+        PS["Product Service (DynamoDB)"]
+        OS["Order Service (Postgres)"]
+        NS["Notification Service (Kafka)"]
+        RS["Recommendation (Gemini Agent)"]
+        CS["Cart Service (Redis)"]
     end
 
-    subgraph "Data & Messaging"
-        Kafka["Apache Kafka (Events)"]
+    subgraph "Data & Events"
+        Kafka["Apache Kafka"]
         Dynamo["AWS DynamoDB"]
         PG["PostgreSQL"]
         Redis["Redis (Cache/Session)"]
+        Mongo["MongoDB"]
     end
 
     User --> RT53
     RT53 --> Nginx
-    Nginx --> WAF
-    WAF --> Kong
-    Kong --> Keycloak
+    Nginx --> Kong
     Kong --> Core
     
     subgraph Core
         US
         PS
         OS
+        NS
         RS
         CS
     end
 
-    RS -- Gemini 1.5 Flash --> AI[AI Agent]
+    RS -- Google Gemini 1.5 Flash --> Gemini[AI Agent]
     Core --> Kafka
     Core --> Redis
+    Core --> Postgres
+    Core --> Mongo
+    Core --> Dynamo
 ```
 
 ---
 
-## 🤖 2. The AI Reasoning Engine
+## 🛡️ 2. Security & Identity Management
 
-Unlike standard chatbots, our **Size Assistant** uses **Google Gemini 1.5 Flash** to perform deductive reasoning on body metrics.
-- **Skill: Silhouette Mapping**: Analyzes height, weight, and gender against athletic silhouettes.
-- **Resilience: Hybrid Fallback**: Implements a fail-safe strategy. If the AI API is rate-limited, the system automatically switches to a rule-based sizing algorithm with a status notify.
-- **Integration**: Leverages **LangChain4j** for type-safe interaction with LLMs.
-
----
-
-## 🔒 3. Multi-Layer Security & Identity
-
-- **Edge SSL**: Nginx terminates SSL/TLS 1.3 at the entry point.
-- **Identity (IAM)**: Integration with **Keycloak** for full OpenID Connect (OIDC) support.
-- **Authentication**: Stateless **JWT** tokens issued by `user-service`.
-- **Gateway Guard**: Kong enforces Rate Limiting, CORS, and JWT validation for all protected endpoints.
+- **Edge SSL Termination**: Nginx terminates TLS 1.3 at the entry point, offloading encryption from internal services.
+- **Identity Hub (Keycloak)**: Centralized OAuth2/OIDC provider managing user federation and sessions.
+- **Gateway Guard (Kong)**: Enforces JWT validation, CORS, and Rate Limiting for all protected routes.
+- **Stateless Auth**: `user-service` issues secure JWT tokens with configurable expiration (RS256/HS256).
 
 ---
 
-## 📊 4. Observability & Professional Tools
+## 🧠 3. AI Reasoning Engine (Google Gemini)
 
-- **Distributed Tracing**: Uses **Zipkin** to visualize request lifecycles across 11+ services.
-- **Metrics**: **Prometheus** & **Grafana** dashboarding for real-time performance monitoring.
-- **Logging**: ELK Stack pre-configured for centralized log management.
-- **Infrastructure as Code**: **Terraform** module provided for automated AWS provisioning (`main.tf`, `variables.tf`).
-
----
-
-## 🛠️ 5. Developer Experience (DevX)
-
-We focus on a "Zero-Friction" setup using a powerful **Makefile**:
-- `make ssl`: Generate local certificates.
-* `make build`: Multi-stage Docker builds.
-* `make up`: Full stack launch (15+ containers).
-* `make lite`: Resource-optimized launch for core services.
-
-### 🍱 Tech Stack
-- **Frontend**: Next.js 15 (Standalone) + Tailwind 4 + Geist Pro fonts.
-- **Backend**: Spring Boot 3.2 + Java 17.
-- **Databases**: PostgreSQL, Amazon DynamoDB (LocalStack), MongoDB, Redis.
-- **Messaging**: Apache Kafka.
+The **Recommendation Service** uses **Google Gemini 1.5 Flash** for intelligent size advising.
+- **Silhouetting**: Deductive reasoning based on height, weight, and silhouettes.
+- **Hybrid Fallback Strategy**: If the AI API is rate-limited or unreachable, the system automatically reverts to a deterministic rule-based sizing algorithm to ensure 100% uptime.
 
 ---
 
-## 💎 6. Rubric Alignment (Proof of Work)
+## 🏗️ 4. Software Design Patterns
 
-| Category | Implementation Detail | Score Point |
+The backend code adheres to rigorous software engineering principles:
+
+| Pattern | Implementation | Benefit |
 | :--- | :--- | :--- |
-| **IaC** | Terraform scripts in `/infrastructure/terraform` | **0.5 pts** |
-| **Deployment** | Nginx SSL + Deployment Roadmap in `DEPLOYMENT_GUIDE.md` | **0.5 pts** |
-| **Redis** | Full CRUD implementation in `shopping-cart-service` | **0.5 pts** |
-| **JWT** | Auth flow with generated tokens in `user-service` | **0.5 pts** |
+| **Singleton** | All `@Service` and `@Repository` components in Spring Boot. | Memory efficiency and shared resource access. |
+| **Observer** | `NotificationConsumer` listening to Kafka `user-registration` topics. | Decoupled asynchronous event processing. |
+| **Strategy** | `GlobalExceptionHandler` mapping specific exceptions to HTTP codes. | Centralized business rule encapsulation. |
+| **Builder** | Usage of Lombok `@Builder` for immutable DTOs and Entities. | Readable and safe object construction. |
+| **Proxy** | Spring AOP for `@Transactional` and Resilience4j `@CircuitBreaker`. | Clean separation of cross-cutting concerns. |
+| **Factory** | Spring's `BeanFactory` and custom DTO-to-Entity converters. | Controlled instantiation of complex objects. |
+
+---
+
+## 🚦 5. Resilience & Fault Tolerance (Resilience4j)
+
+All inter-service communication is protected against "Cascading Failures" using the **Resilience4j** library:
+
+- **Circuit Breaker**: `order-service` calls to `payment-service` and `product-service` will "trip" if failure rates exceed 50%, returning a graceful fallback instead of hanging.
+- **Retry**: Automated retries for transient I/O and Socket exceptions (Exponential Backoff).
+- **Bulkhead**: Limits concurrent calls to downstream services to prevent a single slow service from exhausting all system resources.
+- **Rate Limiter**: Enforced at the Gateway (Kong) and Service levels to prevent DDoS and brute-force attacks.
+
+---
+
+## 💾 6. Polyglot Persistence Layer
+
+| Database | Primary Role | Service Usage |
+| :--- | :--- | :--- |
+| **PostgreSQL** | Relational integrity & transactional safety. | `user-service`, `order-service` |
+| **MongoDB** | Flexible document storage for metadata. | `product-catalog-service` |
+| **Redis** | Extreme low-latency key-value access. | `shopping-cart-service`, Session tags |
+| **DynamoDB** | High-performance NoSQL for catalog indexing. | `product-service` (via LocalStack) |
+| **Kafka** | Distributed commit log for event-driven flows. | User registration, Order updates |
+
+---
+
+## 🚀 7. Quick Start & Deployment
+
+### Clean Launch (Institutional Mode)
+```powershell
+# 1. Generate local SSL certs
+make ssl
+
+# 2. Rebuild backend (Ensures all configuration updates are included)
+mvn clean install -DskipTests
+
+# 3. Start the entire 15+ container stack
+docker-compose down -v
+docker-compose up -d --build
+```
+
+### System Access Table
+| Tool | URL | Admin Creds |
+| :--- | :--- | :--- |
+| **Main Shop** | [https://localhost](https://localhost) | User-Created |
+| **API Docs** | [https://localhost/api-docs/](https://localhost/api-docs/) | N/A |
+| **Identity (Keycloak)**| [http://localhost:8080/admin](http://localhost:8080/admin) | `admin` / `admin` |
+| **Tracing (Zipkin)** | [http://localhost:9411](http://localhost:9411) | N/A |
+| **Monitoring (Grafana)**| [http://localhost:3001](http://localhost:3001) | `admin` / `admin` |
+| **Mail Tester** | [http://localhost:1080](http://localhost:1080) | N/A |
+
+---
+
+## 🧪 8. API Verification Flows
+
+- **User Flow**: `POST /api/users/auth/login` -> Returns JWT.
+- **Catalog Flow**: `GET /api/products` -> Fetched from MongoDB + Redis Cache.
+- **Order Flow**: `POST /api/orders` -> Transactions in PostgreSQL -> Kafka Event fired.
+- **Notification Flow**: Listen to Kafka -> Send email via SMTP (MailDev).
 
 ---
 
 > [!IMPORTANT]
-> This platform is not just a demo; it is a **Production-Ready Blueprints** for enterprise e-commerce, balancing AI innovation with rock-solid DevOps principles.
+> This platform follows a **12-Factor App** methodology and is ready for AWS EKS (Kubernetes) migration using the provided Terraform modules.
