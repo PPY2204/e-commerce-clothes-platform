@@ -38,7 +38,7 @@ services:
     ports:
       - "8080:8080"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health/live"]
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/health/live" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -123,6 +123,11 @@ services:
       - SPRING_PROFILES_ACTIVE=dev
       - MANAGEMENT_TRACING_SAMPLING_PROBABILITY=1.0
       - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/actuator/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     depends_on:
       - postgres
       - kafka
@@ -140,6 +145,11 @@ services:
       - SPRING_PROFILES_ACTIVE=dev
       - MANAGEMENT_TRACING_SAMPLING_PROBABILITY=1.0
       - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/actuator/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     depends_on:
       - localstack
       - mongodb
@@ -157,25 +167,29 @@ services:
       - SPRING_PROFILES_ACTIVE=dev
       - MANAGEMENT_TRACING_SAMPLING_PROBABILITY=1.0
       - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/actuator/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     depends_on:
       - postgres
       - redis
     networks:
       - ecommerce-network
-
-#  recommendation-service:
-#    image: yamatee/recommendation-service:latest
-#    container_name: recommendation-service
-#    build:
-#      context: .
-#      dockerfile: ./be/services/recommendation-service/Dockerfile
-#    env_file: .env
-#    environment:
-#      - SPRING_PROFILES_ACTIVE=dev
-#      - MANAGEMENT_TRACING_SAMPLING_PROBABILITY=1.0
-#      - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
-#    networks:
-#      - ecommerce-network
+    #  recommendation-service:
+    #    image: yamatee/recommendation-service:latest
+    #    container_name: recommendation-service
+    #    build:
+    #      context: .
+    #      dockerfile: ./be/services/recommendation-service/Dockerfile
+    #    env_file: .env
+    #    environment:
+    #   - SPRING_PROFILES_ACTIVE=dev
+    #   - MANAGEMENT_TRACING_SAMPLING_PROBABILITY=1.0
+    #   - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
+    # networks:
+    #      - ecommerce-network
 
   shopping-cart-service:
     image: yamatee/shopping-cart-service:latest
@@ -188,25 +202,30 @@ services:
       - SPRING_PROFILES_ACTIVE=dev
       - MANAGEMENT_TRACING_SAMPLING_PROBABILITY=1.0
       - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/actuator/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     depends_on:
       - postgres
       - redis
     networks:
       - ecommerce-network
 
-#  payment-service:
-#    image: yamatee/payment-service:latest
-#    container_name: payment-service
-#    build:
-#      context: .
-#      dockerfile: ./be/services/payment-service/Dockerfile
-#    env_file: .env
-#    environment:
-#      - SPRING_PROFILES_ACTIVE=dev
-#    depends_on:
-#      - postgres
-#    networks:
-#      - ecommerce-network
+  #  payment-service:
+  #    image: yamatee/payment-service:latest
+  #    container_name: payment-service
+  #    build:
+  #      context: .
+  #      dockerfile: ./be/services/payment-service/Dockerfile
+  #    env_file: .env
+  #    environment:
+  #      - SPRING_PROFILES_ACTIVE=dev
+  #    depends_on:
+  #      - postgres
+  #    networks:
+  #      - ecommerce-network
 
   notification-service:
     image: yamatee/notification-service:latest
@@ -221,25 +240,30 @@ services:
       - SPRING_MAIL_PORT=1025
       - MANAGEMENT_TRACING_SAMPLING_PROBABILITY=1.0
       - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/actuator/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     depends_on:
       - kafka
       - maildev
     networks:
       - ecommerce-network
 
-#  review-service:
-#    image: yamatee/review-service:latest
-#    container_name: review-service
-#    build:
-#      context: .
-#      dockerfile: ./be/services/review-service/Dockerfile
-#    env_file: .env
-#    environment:
-#      - SPRING_PROFILES_ACTIVE=dev
-#    depends_on:
-#      - mongodb
-#    networks:
-#      - ecommerce-network
+  #  review-service:
+  #    image: yamatee/review-service:latest
+  #    container_name: review-service
+  #    build:
+  #      context: .
+  #      dockerfile: ./be/services/review-service/Dockerfile
+  #    env_file: .env
+  #    environment:
+  #      - SPRING_PROFILES_ACTIVE=dev
+  #    depends_on:
+  #      - mongodb
+  #    networks:
+  #      - ecommerce-network
 
   # --- GATEWAY & FRONTEND ---
 
@@ -289,7 +313,7 @@ services:
     environment:
       - NEXT_PUBLIC_API_URL=${GATEWAY_URL}
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      test: [ "CMD", "curl", "-f", "http://localhost:3000" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -313,13 +337,13 @@ services:
     container_name: zipkin
     ports:
       - "9411:9411"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9411/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     networks:
       - ecommerce-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9411/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   prometheus:
     image: prom/prometheus:latest
@@ -351,35 +375,34 @@ services:
       - "1025:1025"
     networks:
       - ecommerce-network
-
   # --- CI/CD ---
-#  jenkins:
-#    image: jenkins/jenkins:lts
-#    container_name: ecommerce-jenkins
-#    privileged: true
-#    user: root
-#    ports:
-#      - "8081:8080"
-#      - "50000:50000"
-#    environment:
-#      - JAVA_OPTS=-Xmx2g
-#    volumes:
-#      - jenkins-data:/var/jenkins_home
-#      - /var/run/docker.sock:/var/run/docker.sock
-#    networks:
-#      - ecommerce-network
+  #  jenkins:
+  #    image: jenkins/jenkins:lts
+  #    container_name: ecommerce-jenkins
+  #    privileged: true
+  #    user: root
+  #    ports:
+  #      - "8081:8080"
+  #      - "50000:50000"
+  #    environment:
+  #      - JAVA_OPTS=-Xmx2g
+  #    volumes:
+  #      - jenkins-data:/var/jenkins_home
+  #      - /var/run/docker.sock:/var/run/docker.sock
+  #    networks:
+  #      - ecommerce-network
 
-#  sonarqube:
-#    image: sonarqube:lts-community
-#    container_name: ecommerce-sonarqube
-#    ports:
-#      - "9000:9000"
-#    environment:
-#      - SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true
-#    volumes:
-#      - sonarqube-data:/opt/sonarqube/data
-#    networks:
-#      - ecommerce-network
+  #  sonarqube:
+  #    image: sonarqube:lts-community
+  #    container_name: ecommerce-sonarqube
+  #    ports:
+  #      - "9000:9000"
+  #    environment:
+  #      - SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true
+  #    volumes:
+  #      - sonarqube-data:/opt/sonarqube/data
+  #    networks:
+  #      - ecommerce-network
 
 volumes:
   postgres-data:
